@@ -212,7 +212,11 @@ export async function handleRequest(request: Request, env: Env, context: Executi
       ) {
         let code = new TextDecoder().decode(await response.arrayBuffer());
         let deps = Object.assign({}, packageJson.peerDependencies, packageJson.dependencies);
-        let newCode = rewriteImports(code, url.origin, deps);
+        let newCode = rewriteImports(code, url.origin, deps, {
+          packageName: packageName,
+          version,
+          imports: packageJson.imports,
+        });
 
         return new Response(newCode, {
           headers: {

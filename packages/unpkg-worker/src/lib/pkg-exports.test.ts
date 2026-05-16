@@ -1,7 +1,7 @@
 import { expect, describe, it } from "bun:test";
 
 import type { PackageJson } from "./npm-info.ts";
-import { resolvePackageExport } from "./pkg-exports.ts";
+import { resolvePackageExport, resolvePackageImport } from "./pkg-exports.ts";
 
 describe("resolvePackageExport", () => {
   describe("when package.module is a string", () => {
@@ -274,3 +274,135 @@ describe("resolvePackageExport", () => {
     });
   });
 });
+describe("resolvePackageImport", () => {
+  describe("exact match with string value", () => {
+      let imports = {
+        "#utils": "./src/utils.js",
+      };
+
+      it('resolves "#utils"', () => {
+        expect(resolvePackageImport(imports, "#utils")).toBe("/src/utils.js");
+      });
+
+      it('returns null for non-matching specifier', () => {
+        expect(resolvePackageImport(imports, "#other")).toBe(null);
+      });
+
+      it('returns null for wildcard-only specifier', () => {
+        expect(resolvePackageImport(imports, "#utils/helpers")).toBe(null);
+      });
+    });
+
+    describe("wildcard match with string value", () => {
+      let imports = {
+        "#utils/*": "./src/utils/*.js",
+      };
+
+      it('resolves "#utils/helpers"', () => {
+        expect(resolvePackageImport(imports, "#utils/helpers")).toBe("/src/utils/helpers.js");
+      });
+
+      it('resolves "#utils/nested/helpers"', () => {
+        expect(resolvePackageImport(imports, "#utils/nested/helpers")).toBe("/src/utils/nested/helpers.js");
+      });
+
+      it("does not resolve bare #utils", () => {
+        expect(resolvePackageImport(imports, "#utils")).toBe(null);
+      });
+    });
+
+    describe("exact match with conditions object", () => {
+      let imports = {
+        "#dep": {
+          import: "./src/dep.mjs",
+          require: "./src/dep.cjs",
+          default: "./src/dep.js",
+        },
+      };
+
+      it('picks "import" as first matching default condition', () => {
+        expect(resolvePackageImport(imports, "#dep")).toBe("/src/dep.mjs");
+      });
+
+      it("uses custom conditions", () => {
+        expect(resolvePackageImport(imports, "#dep", ["require", "default"])).toBe("/src/dep.cjs");
+      });
+
+      it("falls back to default when only default condition matches", () => {
+        expect(resolvePackageImport(imports, "#dep", ["default"])).toBe("/src/dep.js");
+      });
+    });
+
+    describe("wildcard match with conditions object", () => {
+      let imports = {
+        "#utils/*": {
+          import: "./src/utils/*.mjs",
+          default: "./src/utils/*.js",
+        },
+      };
+
+      it('resolves "#utils/helpers" using import condition', () => {
+        expect(resolvePackageImport(imports, "#utils/helpers")).toBe("/src/utils/helpers.mjs");
+      });
+
+      it("uses custom conditions", () => {
+        expect(resolvePackageImport(imports, "#utils/helpers", ["default"])).toBe("/src/utils/helpers.js");
+      });
+    });
+
+    describe("nested conditions", () => {
+      let imports = {
+        "#dep": {
+          browser: {
+            import: "./src/dep.browser.mjs",
+            default: "./src/dep.browser.js",
+          },
+          import: "./src/dep.mjs",
+          default: "./src/dep.js",
+        },
+      };
+
+      it("picks top-level import over nested browser", () => {
+        expect(resolvePackageImport(imports, "#dep")).toBe("/src/dep.mjs");
+      });
+
+      it("picks nested import when browser is first condition", () => {
+        expect(resolvePackageImport(imports, "#dep", ["browser", "import"])).toBe("/src/dep.browser.mjs");
+      });
+    });
+
+    describe("undefined imports", () => {
+      it("returns null for undefined imports", () => {
+        expect(resolvePackageImport(undefined, "#utils")).toBe(null);
+      });
+    });
+
+    describe("multiple keys", () => {
+      let imports = {
+        "#utils": "./src/utils.js",
+        "#utils/extra": "./src/utils/extra.js",
+        "#lib/*": "./src/lib/*.js",
+      };
+
+      it("picks exact match over wildcard", () => {
+        expect(resolvePackageImport(imports, "#utils")).toBe("/src/utils.js");
+      });
+
+      it("picks more specific exact match", () => {
+        expect(resolvePackageImport(imports, "#utils/extra")).toBe("/src/utils/extra.js");
+      });
+
+      it("falls through to wildcard", () => {
+        expect(resolvePackageImport(imports, "#lib/something")).toBe("/src/lib/something.js");
+    });
+
+    it("exact match wins over wildcard regardless of key order", () => {
+      let imports = {
+        "#a/*": "./src/a/wildcard/*.js",
+        "#a/b": "./src/a/exact.js",
+      };
+      expect(resolvePackageImport(imports, "#a/b")).toBe("/src/a/exact.js");
+    });
+  });
+});
+

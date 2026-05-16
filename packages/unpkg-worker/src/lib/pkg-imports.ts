@@ -1,9 +1,23 @@
 import { parse } from "es-module-lexer/js";
 
+import type { ExportConditions } from "./npm-info.ts";
+import { resolvePackageImport } from "./pkg-exports.ts";
+
+interface RewriteImportsOptions {
+  packageName?: string;
+  version?: string;
+  imports?: Record<string, string | ExportConditions>;
+}
+
 /**
  * Rewrites all imports in the given code to point to unpkg URLs.
  */
-export function rewriteImports(code: string, origin: string, dependencies: Record<string, string>): string {
+export function rewriteImports(
+  code: string,
+  origin: string,
+  dependencies: Record<string, string>,
+  options?: RewriteImportsOptions
+): string {
   let [imports] = parse(code);
   let rewrites: { start: number; end: number; value: string }[] = [];
 
@@ -20,9 +34,9 @@ export function rewriteImports(code: string, origin: string, dependencies: Recor
       // dynamic import()
       let match = /^(["'])([^"']*)\1$/.exec(specifier);
       if (match === null) continue; // not a simple string literal
-      rewriteValue = match[1] + rewriteSpecifier(match[2], origin, dependencies) + match[1];
+      rewriteValue = match[1] + rewriteSpecifier(match[2], origin, dependencies, options) + match[1];
     } else {
-      rewriteValue = rewriteSpecifier(specifier, origin, dependencies);
+      rewriteValue = rewriteSpecifier(specifier, origin, dependencies, options);
     }
 
     if (rewriteValue !== specifier) {
@@ -41,8 +55,23 @@ export function rewriteImports(code: string, origin: string, dependencies: Recor
   return result;
 }
 
-function rewriteSpecifier(specifier: string, origin: string, dependencies: Record<string, string>): string {
+function rewriteSpecifier(
+  specifier: string,
+  origin: string,
+  dependencies: Record<string, string>,
+  options?: RewriteImportsOptions
+): string {
   if (specifier === "" || isValidUrl(specifier)) {
+    return specifier;
+  }
+
+  if (specifier.startsWith("#")) {
+    if (options) {
+      let resolved = resolvePackageImport(options.imports, specifier);
+      if (resolved != null && options.packageName && options.version) {
+        return `${origin}/${options.packageName}@${options.version}${resolved}?module`;
+      }
+    }
     return specifier;
   }
 

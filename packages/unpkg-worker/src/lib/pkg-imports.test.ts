@@ -96,4 +96,65 @@ describe("rewriteImports", () => {
     let result = rewriteImports('import { state } from "lit";', "https://unpkg.com", { lit: "2.0.0 - 3.0.0" });
     expect(result).toBe('import { state } from "https://unpkg.com/lit@3.0.0?module";');
   });
+
+  describe("subpath imports (# specifiers)", () => {
+    it('rewrites `import { x } from "#utils";`', () => {
+      let result = rewriteImports('import { x } from "#utils";', "https://unpkg.com", {}, {
+        packageName: "my-pkg",
+        version: "1.0.0",
+        imports: { "#utils": "./src/utils.js" },
+      });
+      expect(result).toBe('import { x } from "https://unpkg.com/my-pkg@1.0.0/src/utils.js?module";');
+    });
+
+    it('rewrites wildcard `import { x } from "#utils/helpers";`', () => {
+      let result = rewriteImports('import { x } from "#utils/helpers";', "https://unpkg.com", {}, {
+        packageName: "my-pkg",
+        version: "1.0.0",
+        imports: { "#utils/*": "./src/utils/*.js" },
+      });
+      expect(result).toBe('import { x } from "https://unpkg.com/my-pkg@1.0.0/src/utils/helpers.js?module";');
+    });
+
+    it('rewrites dynamic `import("#dep");`', () => {
+      let result = rewriteImports('import("#dep");', "https://unpkg.com", {}, {
+        packageName: "my-pkg",
+        version: "1.0.0",
+        imports: { "#dep": "./src/dep.js" },
+      });
+      expect(result).toBe('import("https://unpkg.com/my-pkg@1.0.0/src/dep.js?module");');
+    });
+
+    it('uses import condition for condition objects', () => {
+      let result = rewriteImports('import { x } from "#dep";', "https://unpkg.com", {}, {
+        packageName: "my-pkg",
+        version: "1.0.0",
+        imports: { "#dep": { import: "./src/dep.mjs", default: "./src/dep.js" } },
+      });
+      expect(result).toBe('import { x } from "https://unpkg.com/my-pkg@1.0.0/src/dep.mjs?module";');
+    });
+
+    it("leaves # specifier unchanged when not in imports map", () => {
+      let result = rewriteImports('import { x } from "#missing";', "https://unpkg.com", {}, {
+        packageName: "my-pkg",
+        version: "1.0.0",
+        imports: { "#utils": "./src/utils.js" },
+      });
+      expect(result).toBe('import { x } from "#missing";');
+    });
+
+    it("leaves # specifier unchanged when no options provided (backward compat)", () => {
+      let result = rewriteImports('import { x } from "#utils";', "https://unpkg.com", {});
+      expect(result).toBe('import { x } from "#utils";');
+    });
+
+    it("leaves # specifier unchanged when no options.imports", () => {
+      let result = rewriteImports('import { x } from "#utils";', "https://unpkg.com", {}, {
+        packageName: "my-pkg",
+        version: "1.0.0",
+      });
+      expect(result).toBe('import { x } from "#utils";');
+    });
+  });
+
 });

@@ -145,6 +145,73 @@ function _resolveExportConditions(
   return null;
 }
 
+/**
+ * Resolves a #-prefixed import specifier using the "imports" field in package.json.
+ * Supports exact matches, wildcard matches ("#utils/*"), and condition objects.
+ * Follows Node.js resolution: exact matches take priority, then longest-prefix wildcard wins.
+ *
+ * @see https://nodejs.org/api/packages.html#subpath-imports
+ */
+export function resolvePackageImport(
+  imports: Record<string, string | ExportConditions> | undefined,
+  specifier: string,
+  conditions?: string[]
+): string | null {
+  if (imports == null) return null;
+
+  let supportedConditions = conditions ?? ["import", "default"];
+
+  // 1. Exact match takes priority over wildcards
+  for (let key in imports) {
+    if (key.endsWith("/*")) continue;
+    if (specifier !== key) continue;
+    return resolveImportValue(imports[key], supportedConditions);
+  }
+
+  // 2. Longest-matching wildcard prefix wins
+  let bestBase = "";
+  let bestValue: string | ExportConditions | null = null;
+  for (let key in imports) {
+    if (!key.endsWith("/*")) continue;
+    let base = key.slice(0, -2);
+    if (specifier.startsWith(base + "/")) {
+      if (base.length > bestBase.length) {
+        bestBase = base;
+        bestValue = imports[key];
+      }
+    }
+  }
+
+  if (bestValue != null) {
+    let rest = specifier.slice(bestBase.length);
+    if (typeof bestValue === "string") {
+      return pathToFilename(bestValue.replace("*", rest.slice(1)));
+    } else {
+      let resolved = resolveExportConditions(bestValue, ".", supportedConditions);
+      if (resolved != null) {
+        return pathToFilename(resolved.replace("*", rest.slice(1)));
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveImportValue(
+  value: string | ExportConditions,
+  conditions: string[]
+): string | null {
+  if (typeof value === "string") {
+    return pathToFilename(value);
+  } else {
+    let resolved = resolveExportConditions(value, ".", conditions);
+    if (resolved != null) {
+      return pathToFilename(resolved);
+    }
+  }
+  return null;
+}
+
 function isSubpath(path: string): boolean {
   return path.startsWith(".");
 }

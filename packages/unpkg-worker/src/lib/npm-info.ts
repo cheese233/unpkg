@@ -26,6 +26,8 @@ export interface PackageJson {
   devDependencies?: Record<string, string>;
   exports?: string | ExportConditions;
   homepage?: string;
+  // See https://nodejs.org/api/packages.html#subpath-imports
+  imports?: Record<string, string | ExportConditions>;
   license?: string;
   main?: string;
   // See https://medium.com/webpack/webpack-and-rollup-the-same-but-different-a41ad427058c

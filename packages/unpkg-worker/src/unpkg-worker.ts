@@ -4,7 +4,7 @@ export { fetchFile, getFile, listFiles } from "./lib/npm-files.ts";
 export type { PackageInfo, PackageJson, ExportConditions } from "./lib/npm-info.ts";
 export { getPackageInfo } from "./lib/npm-info.ts";
 
-export { resolvePackageExport } from "./lib/pkg-exports.ts";
+export { resolvePackageExport, resolvePackageImport } from "./lib/pkg-exports.ts";
 
 export { rewriteImports } from "./lib/pkg-imports.ts";
 
