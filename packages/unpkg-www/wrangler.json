@@ -3,7 +3,9 @@
   "main": "./src/worker.ts",
   "assets": { "directory": "./public" },
   "build": { "command": "pnpm run build:assets" },
-
+  "placement": {
+    "mode": "smart"
+  },
   "name": "unpkg",
   "observability": { "enabled": true, "head_sampling_rate": 0.001 },
   "routes": [{ "pattern": "cdn.c23.me/*", "zone_name": "c23.me" }],
