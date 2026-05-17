@@ -13,7 +13,7 @@
     "APP_ORIGIN": "https://app.unpkg.com",
     "ASSETS_ORIGIN": "https://cdn.c23.me",
     "DEV": false,
-    "ESM_ORIGIN": "https://esm.unpkg.com",
+    "ESM_ORIGIN": "https://esm.cdn.c23.me",
     "FILES_ORIGIN": "https://fly.unpkg.com",
     "MODE": "production",
     "ORIGIN": "https://cdn.c23.me"
@@ -32,6 +32,24 @@
         "MODE": "development",
         "ORIGIN": "http://localhost:3000"
       }
+    }
+  },
+
+  "staging": {
+    "name": "unpkg-www-staging",
+    "observability": { "enabled": true },
+    "routes": [
+      { "pattern": "www.unpkg.dev", "custom_domain": true },
+      { "pattern": "unpkg.dev", "custom_domain": true }
+    ],
+    "vars": {
+      "APP_ORIGIN": "https://app.unpkg.dev",
+      "ASSETS_ORIGIN": "https://unpkg.dev",
+      "DEV": false,
+      "ESM_ORIGIN": "https://esm.unpkg.dev",
+      "FILES_ORIGIN": "https://fly.unpkg.dev",
+      "MODE": "staging",
+      "ORIGIN": "https://unpkg.dev"
     }
   }
 }

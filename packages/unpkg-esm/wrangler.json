@@ -2,15 +2,17 @@
   "compatibility_date": "2024-12-05",
   "main": "./src/worker.ts",
   "assets": { "directory": "./public" },
-
+  "placement": {
+    "mode": "smart"
+  },
   "name": "unpkg-esm",
   "observability": { "enabled": true, "head_sampling_rate": 0.001 },
-  "routes": [{ "pattern": "esm.unpkg.com", "custom_domain": true }],
+  "routes": [{ "pattern": "esm.cdn.c23.me/*", "zone_name": "c23.me" }],
   "vars": {
     "FILES_ORIGIN": "https://fly.unpkg.com",
     "MODE": "production",
-    "ORIGIN": "https://esm.unpkg.com",
-    "WWW_ORIGIN": "https://unpkg.com"
+    "ORIGIN": "https://esm.cdn.c23.me",
+    "WWW_ORIGIN": "https://cdn.c23.me"
   },
 
   "env": {
